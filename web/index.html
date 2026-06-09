@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinançasPro — Dashboard Web</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #273549;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --green: #4ade80;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --yellow: #fbbf24;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Auth screen ── */
+    #auth-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 420px;
+      border: 1px solid var(--border);
+    }
+
+    .auth-logo { text-align: center; margin-bottom: 32px; }
+    .auth-logo .emoji { font-size: 52px; display: block; margin-bottom: 8px; }
+    .auth-logo h1 { font-size: 28px; font-weight: 700; }
+    .auth-logo p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; margin-top: 16px; }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus { border-color: var(--green); }
+
+    .btn-primary {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--green);
+      color: var(--bg);
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .error-msg {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #f8717120;
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      color: var(--red);
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ── Main app ── */
+    #main-screen { display: none; flex-direction: column; flex: 1; }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-brand { font-size: 18px; font-weight: 700; }
+    .header-brand span { color: var(--green); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-info { font-size: 13px; color: var(--muted); }
+    .user-info strong { color: var(--text); }
+    .btn-logout {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-logout:hover { background: #f8717115; border-color: var(--red); }
+
+    /* Nav */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      gap: 4px;
+    }
+    .nav-btn {
+      padding: 14px 18px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+    .nav-btn.active { color: var(--green); border-bottom-color: var(--green); }
+    .nav-btn:hover { color: var(--text); }
+
+    /* Content */
+    .content { flex: 1; padding: 28px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    /* Pages */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Dashboard page ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+    }
+    .summary-card.balance { border-left-color: var(--blue); }
+    .summary-card.income  { border-left-color: var(--green); }
+    .summary-card.expense { border-left-color: var(--red); }
+
+    .summary-card .card-icon { font-size: 26px; margin-bottom: 10px; }
+    .summary-card .card-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .summary-card .card-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+    .summary-card.balance .card-value { color: var(--blue); }
+    .summary-card.income .card-value  { color: var(--green); }
+    .summary-card.expense .card-value { color: var(--red); }
+
+    /* Recent transactions */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-title { font-size: 17px; font-weight: 700; }
+    .btn-add {
+      padding: 8px 16px;
+      border-radius: 10px;
+      background: var(--green);
+      color: var(--bg);
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-add:hover { opacity: .85; }
+
+    /* Transaction list */
+    .tx-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .tx-item {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .tx-item:hover { background: var(--surface2); }
+
+    .tx-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .tx-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .tx-icon.income  { background: #4ade8018; }
+    .tx-icon.expense { background: #f8717118; }
+
+    .tx-info { min-width: 0; }
+    .tx-desc { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-left: 16px; }
+    .tx-amount { font-size: 15px; font-weight: 700; }
+    .tx-amount.income  { color: var(--green); }
+    .tx-amount.expense { color: var(--red); }
+
+    .btn-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: .5;
+      transition: opacity .2s;
+      padding: 2px 4px;
+    }
+    .btn-del:hover { opacity: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+
+    /* ── Transactions page ── */
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .filter-btn.active { background: var(--green); color: var(--bg); border-color: var(--green); }
+
+    /* ── Add transaction page ── */
+    .form-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px;
+      border: 1px solid var(--border);
+      max-width: 560px;
+    }
+
+    .type-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .type-btn.income.active  { background: #4ade8018; border-color: var(--green); color: var(--green); }
+    .type-btn.expense.active { background: #f8717118; border-color: var(--red);   color: var(--red); }
+
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .cat-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .cat-chip.active { background: #4ade8018; border-color: var(--green); color: var(--green); font-weight: 600; }
+
+    .success-msg {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #4ade8018;
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      color: var(--green);
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ── Notifications page ── */
+    .notif-list { display: flex; flex-direction: column; gap: 10px; }
+    .notif-item {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .notif-item.alerta { border-left: 4px solid var(--red); }
+    .notif-item.info   { border-left: 4px solid var(--green); }
+    .notif-icon { font-size: 20px; flex-shrink: 0; padding-top: 2px; }
+    .notif-msg  { font-size: 14px; line-height: 1.5; }
+    .notif-time { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Offline badge ── */
+    #offline-badge {
+      display: none;
+      background: #374151;
+      color: #9ca3af;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .content { padding: 18px 14px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      header { padding: 0 14px; }
+      nav { padding: 0 14px; }
+      .auth-card { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════════════════════════════════════
+       AUTH SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="emoji">💰</span>
+        <h1>FinançasPro</h1>
+        <p>Controle seu dinheiro com inteligência</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('login')">Entrar</button>
+        <button class="tab-btn" onclick="showTab('register')">Cadastrar</button>
+      </div>
+
+      <!-- Login form -->
+      <div id="login-form">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" />
+        <label>Senha</label>
+        <input type="password" id="login-password" placeholder="••••••" />
+        <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+      </div>
+
+      <!-- Register form -->
+      <div id="register-form" style="display:none">
+        <label>Nome completo</label>
+        <input type="text" id="reg-name" placeholder="Seu nome" />
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="seu@email.com" />
+        <label>Senha (mín. 6 caracteres)</label>
+        <input type="password" id="reg-password" placeholder="••••••" />
+        <label>Limite mensal de despesas (R$)</label>
+        <input type="number" id="reg-limit" placeholder="2000" value="2000" />
+        <button class="btn-primary" id="btn-register" onclick="doRegister()">Criar Conta</button>
+      </div>
+
+      <div class="error-msg" id="auth-error"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN APP
+  ══════════════════════════════════════════ -->
+  <div id="main-screen">
+    <header>
+      <div class="header-brand">💰 <span>Finanças</span>Pro</div>
+      <div class="header-right">
+        <span id="offline-badge">📴 Offline</span>
+        <div class="user-info">Olá, <strong id="user-name">—</strong></div>
+        <button class="btn-logout" onclick="doLogout()">Sair</button>
+      </div>
+    </header>
+
+    <nav>
+      <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Início</button>
+      <button class="nav-btn" onclick="showPage('transactions')">📋 Transações</button>
+      <button class="nav-btn" onclick="showPage('add')">➕ Nova</button>
+      <button class="nav-btn" onclick="showPage('notifications')">🔔 Alertas</button>
+    </nav>
+
+    <div class="content">
+
+      <!-- Dashboard -->
+      <div class="page active" id="page-dashboard">
+        <div class="summary-grid">
+          <div class="summary-card balance">
+            <div class="card-icon">💼</div>
+            <div class="card-label">Saldo Atual</div>
+            <div class="card-value" id="dash-balance">R$ —</div>
+          </div>
+          <div class="summary-card income">
+            <div class="card-icon">📈</div>
+            <div class="card-label">Total Receitas</div>
+            <div class="card-value" id="dash-income">R$ —</div>
+          </div>
+          <div class="summary-card expense">
+            <div class="card-icon">📉</div>
+            <div class="card-label">Total Despesas</div>
+            <div class="card-value" id="dash-expense">R$ —</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">Últimas transações</span>
+          <button class="btn-add" onclick="showPage('add')">+ Nova Transação</button>
+        </div>
+        <div class="tx-list" id="recent-list">
+          <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transactions -->
+      <div class="page" id="page-transactions">
+        <div class="section-header">
+          <span class="section-title">Todas as Transações</span>
+          <button class="btn-add" onclick="showPage('add')">+ Nova</button>
+        </div>
+        <div class="filters">
+          <button class="filter-btn active" onclick="setFilter('all', this)">Todas</button>
+          <button class="filter-btn" onclick="setFilter('income', this)">📈 Receitas</button>
+          <button class="filter-btn" onclick="setFilter('expense', this)">📉 Despesas</button>
+        </div>
+        <div class="tx-list" id="all-tx-list">
+          <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Transaction -->
+      <div class="page" id="page-add">
+        <div class="section-header">
+          <span class="section-title">Nova Transação</span>
+        </div>
+        <div class="form-card">
+          <div class="type-toggle">
+            <button class="type-btn expense active" id="btn-type-expense" onclick="setType('expense')">📉 Despesa</button>
+            <button class="type-btn income" id="btn-type-income" onclick="setType('income')">📈 Receita</button>
+          </div>
+
+          <label>Valor (R$) *</label>
+          <input type="number" id="tx-amount" placeholder="0,00" step="0.01" min="0.01" style="font-size:22px;font-weight:700;text-align:center" />
+
+          <label>Descrição *</label>
+          <input type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel, Mercado..." />
+
+          <label>Data</label>
+          <input type="date" id="tx-date" />
+
+          <label>Categoria</label>
+          <div class="categories" id="categories">
+            <span class="cat-chip" onclick="setCat(this)">Renda</span>
+            <span class="cat-chip" onclick="setCat(this)">Moradia</span>
+            <span class="cat-chip" onclick="setCat(this)">Alimentação</span>
+            <span class="cat-chip" onclick="setCat(this)">Transporte</span>
+            <span class="cat-chip" onclick="setCat(this)">Saúde</span>
+            <span class="cat-chip" onclick="setCat(this)">Lazer</span>
+            <span class="cat-chip active" onclick="setCat(this)">Outros</span>
+          </div>
+
+          <button class="btn-primary" id="btn-save-tx" onclick="saveTransaction()">Salvar Transação</button>
+          <div class="error-msg"  id="tx-error"></div>
+          <div class="success-msg" id="tx-success"></div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="page" id="page-notifications">
+        <div class="section-header">
+          <span class="section-title">Alertas & Notificações</span>
+          <button class="btn-add" onclick="loadNotifications()">🔄 Atualizar</button>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:18px">
+          Geradas pelo serviço de notificações via RabbitMQ (porta 3001)
+        </p>
+        <div class="notif-list" id="notif-list">
+          <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-screen -->
+
+</div><!-- /app -->
+
+<script>
+  /* ════════════════════════════════════════════
+     CONFIG
+  ════════════════════════════════════════════ */
+  const API  = 'http://10.3.17.217:3000';
+  const NOTIF_API = 'http://10.3.17.217:3001';
+
+  /* ════════════════════════════════════════════
+     STATE
+  ════════════════════════════════════════════ */
+  let token = localStorage.getItem('fp_token') || null;
+  let user  = JSON.parse(localStorage.getItem('fp_user') || 'null');
+  let allTx = [];
+  let txFilter = 'all';
+  let selectedType = 'expense';
+  let selectedCat  = 'Outros';
+
+  /* ════════════════════════════════════════════
+     HELPERS
+  ════════════════════════════════════════════ */
+  function brl(v) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+  }
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+
+  async function api(path, opts = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API + path, { headers, ...opts });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+    return data;
+  }
+
+  function showErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 5000);
+  }
+
+  function showOk(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.textContent = loading ? '⏳ Aguarde...' : btn.dataset.label || btn.textContent;
+  }
+
+  /* ════════════════════════════════════════════
+     AUTH
+  ════════════════════════════════════════════ */
+  function showTab(tab) {
+    document.getElementById('login-form').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+    });
+    document.getElementById('auth-error').style.display = 'none';
+  }
+
+  async function doLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { showErr('auth-error', 'Preencha e-mail e senha.'); return; }
+
+    setLoading('btn-login', true);
+    try {
+      const data = await api('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      onLogin(data);
+    } catch (e) {
+      showErr('auth-error', e.message);
+    } finally {
+      setLoading('btn-login', false);
+      document.getElementById('btn-login').textContent = 'Entrar';
+    }
+  }
+
+  async function doRegister() {
+    const name     = document.getElementById('reg-name').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const limit    = parseFloat(document.getElementById('reg-limit').value) || 2000;
+
+    if (!name || !email || !password) { showErr('auth-error', 'Preencha todos os campos.'); return; }
+    if (password.length < 6)          { showErr('auth-error', 'Senha deve ter mín. 6 caracteres.'); return; }
+
+    setLoading('btn-register', true);
+    try {
+      const data = await api('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, expenseLimit: limit })
+      });
+      onLogin(data);
+    } catch (e) {
+      showErr('auth-error', e.message);
+    } finally {
+      setLoading('btn-register', false);
+      document.getElementById('btn-register').textContent = 'Criar Conta';
+    }
+  }
+
+  function onLogin(data) {
+    token = data.token;
+    user  = data.user;
+    localStorage.setItem('fp_token', token);
+    localStorage.setItem('fp_user',  JSON.stringify(user));
+    startApp();
+  }
+
+  function doLogout() {
+    token = null; user = null;
+    localStorage.removeItem('fp_token');
+    localStorage.removeItem('fp_user');
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('main-screen').style.display = 'none';
+  }
+
+  /* ════════════════════════════════════════════
+     NAVIGATION
+  ════════════════════════════════════════════ */
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    const btns = document.querySelectorAll('.nav-btn');
+    const map  = { dashboard: 0, transactions: 1, add: 2, notifications: 3 };
+    if (map[name] !== undefined) btns[map[name]].classList.add('active');
+
+    if (name === 'dashboard')     loadDashboard();
+    if (name === 'transactions')  loadAllTx();
+    if (name === 'add')           initAddForm();
+    if (name === 'notifications') loadNotifications();
+  }
+
+  /* ════════════════════════════════════════════
+     STARTUP
+  ════════════════════════════════════════════ */
+  function startApp() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'flex';
+    document.getElementById('user-name').textContent = user?.name?.split(' ')[0] || user?.name || '—';
+    loadDashboard();
+  }
+
+  /* ════════════════════════════════════════════
+     DASHBOARD
+  ════════════════════════════════════════════ */
+  async function loadDashboard() {
+    try {
+      const [summary, txData] = await Promise.all([
+        api('/transactions/summary'),
+        api('/transactions')
+      ]);
+
+      document.getElementById('dash-balance').textContent = brl(summary.balance);
+      document.getElementById('dash-income').textContent  = brl(summary.totalIncome);
+      document.getElementById('dash-expense').textContent = brl(summary.totalExpense);
+
+      // color balance
+      const balEl = document.getElementById('dash-balance');
+      balEl.style.color = summary.balance >= 0 ? 'var(--green)' : 'var(--red)';
+
+      allTx = txData.transactions || [];
+      renderTxList('recent-list', allTx.slice(0, 6), true);
+    } catch (e) {
+      document.getElementById('recent-list').innerHTML =
+        `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     TRANSACTIONS
+  ════════════════════════════════════════════ */
+  async function loadAllTx() {
+    try {
+      const params = txFilter !== 'all' ? `?type=${txFilter}` : '';
+      const data = await api('/transactions' + params);
+      allTx = data.transactions || [];
+      renderTxList('all-tx-list', allTx, true);
+    } catch (e) {
+      document.getElementById('all-tx-list').innerHTML =
+        `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+    }
+  }
+
+  function setFilter(f, btn) {
+    txFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadAllTx();
+  }
+
+  function renderTxList(containerId, list, showDel) {
+    const el = document.getElementById(containerId);
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhuma transação encontrada.</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(t => `
+      <div class="tx-item">
+        <div class="tx-left">
+          <div class="tx-icon ${t.type}">
+            ${t.type === 'income' ? '💚' : '🔴'}
+          </div>
+          <div class="tx-info">
+            <div class="tx-desc">${t.description}</div>
+            <div class="tx-meta">${t.category} · ${fmtDate(t.date)}</div>
+          </div>
+        </div>
+        <div class="tx-right">
+          <span class="tx-amount ${t.type}">
+            ${t.type === 'income' ? '+' : '-'}${brl(t.amount)}
+          </span>
+          ${showDel ? `<button class="btn-del" onclick="deleteTx(${t.id || t.serverId})" title="Excluir">🗑</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function deleteTx(id) {
+    if (!confirm('Excluir esta transação?')) return;
+    try {
+      await api(`/transactions/${id}`, { method: 'DELETE' });
+      loadDashboard();
+      loadAllTx();
+    } catch (e) {
+      alert('Erro ao excluir: ' + e.message);
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     ADD TRANSACTION
+  ════════════════════════════════════════════ */
+  function initAddForm() {
+    // set today's date
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('tx-amount').value = '';
+    document.getElementById('tx-desc').value = '';
+    document.getElementById('tx-error').style.display = 'none';
+    document.getElementById('tx-success').style.display = 'none';
+  }
+
+  function setType(type) {
+    selectedType = type;
+    document.getElementById('btn-type-expense').classList.toggle('active', type === 'expense');
+    document.getElementById('btn-type-income').classList.toggle('active', type === 'income');
+  }
+
+  function setCat(el) {
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedCat = el.textContent;
+  }
+
+  async function saveTransaction() {
+    const amount = parseFloat(document.getElementById('tx-amount').value);
+    const desc   = document.getElementById('tx-desc').value.trim();
+    const date   = document.getElementById('tx-date').value;
+
+    if (!amount || amount <= 0) { showErr('tx-error', 'Informe um valor válido maior que zero.'); return; }
+    if (!desc) { showErr('tx-error', 'Informe uma descrição.'); return; }
+
+    document.getElementById('btn-save-tx').disabled = true;
+    document.getElementById('btn-save-tx').textContent = '⏳ Salvando...';
+
+    try {
+      await api('/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: selectedType,
+          amount,
+          description: desc,
+          category: selectedCat,
+          date: date || new Date().toISOString().split('T')[0]
+        })
+      });
+      showOk('tx-success', '✅ Transação salva com sucesso! Publicada na fila RabbitMQ.');
+      document.getElementById('tx-amount').value = '';
+      document.getElementById('tx-desc').value = '';
+    } catch (e) {
+      showErr('tx-error', e.message);
+    } finally {
+      document.getElementById('btn-save-tx').disabled = false;
+      document.getElementById('btn-save-tx').textContent = 'Salvar Transação';
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     NOTIFICATIONS (notification-service)
+  ════════════════════════════════════════════ */
+  async function loadNotifications() {
+    const el = document.getElementById('notif-list');
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><p>Buscando alertas...</p></div>`;
+
+    try {
+      const res  = await fetch(NOTIF_API + '/notifications');
+      const data = await res.json();
+      const list = (data.notifications || []);
+
+      if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔔</div><p>Nenhuma notificação ainda.<br><small>Crie transações para gerar alertas via RabbitMQ.</small></p></div>`;
+        return;
+      }
+
+      el.innerHTML = list.map(n => `
+        <div class="notif-item ${n.tipo}">
+          <div class="notif-icon">${n.tipo === 'alerta' ? '⚠️' : '✅'}</div>
+          <div>
+            <div class="notif-msg">${n.mensagem}</div>
+            <div class="notif-time">${new Date(n.recebidoEm).toLocaleString('pt-BR')}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      el.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔌</div>
+          <p>Notification service offline.<br>
+          <small style="color:var(--muted)">Inicie com: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">npm start</code> na pasta notification-service</small></p>
+        </div>`;
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     INIT
+  ════════════════════════════════════════════ */
+  window.addEventListener('DOMContentLoaded', () => {
+    // set default date
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+    if (token && user) {
+      startApp();
+    }
+  });
+
+  // Enter key on login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('login-form').style.display !== 'none') doLogin();
+      else doRegister();
+    }
+  });
+</script>
+</body>
+</html>
