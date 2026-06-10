@@ -1,21 +1,30 @@
 /**
  * Testes funcionais — Transações (CRUD + resumo financeiro)
+ * Usa Firestore com projectId fake (sem credenciais reais)
  */
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_secret';
 
 const request = require('supertest');
 const app = require('../src/app');
-const sequelize = require('../src/config/database');
-
-require('../src/models/User');
-require('../src/models/Transaction');
+const { db, Collections } = require('../src/config/firebase');
 
 let token = '';
 let transactionId = null;
 
+// Limpa coleções e registra usuário de teste
 beforeAll(async () => {
-  await sequelize.sync({ force: true });
+  // Limpa transações
+  const txSnap = await db.collection(Collections.TRANSACTIONS).get();
+  const batch = db.batch();
+  txSnap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+
+  // Limpa usuários
+  const usersSnap = await db.collection(Collections.USERS).get();
+  const batch2 = db.batch();
+  usersSnap.docs.forEach(doc => batch2.delete(doc.ref));
+  await batch2.commit();
 
   // Registra e faz login para obter token
   const res = await request(app).post('/auth/register').send({
@@ -28,7 +37,16 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await sequelize.close();
+  // Limpa dados de teste
+  const txSnap = await db.collection(Collections.TRANSACTIONS).get();
+  const batch = db.batch();
+  txSnap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+
+  const usersSnap = await db.collection(Collections.USERS).get();
+  const batch2 = db.batch();
+  usersSnap.docs.forEach(doc => batch2.delete(doc.ref));
+  await batch2.commit();
 });
 
 describe('POST /transactions', () => {
@@ -141,7 +159,6 @@ describe('GET /transactions/summary', () => {
     expect(res.body).toHaveProperty('totalIncome');
     expect(res.body).toHaveProperty('totalExpense');
 
-    // Salário (3000) - Aluguel (500) = 2500
     expect(res.body.totalIncome).toBe(3000);
     expect(res.body.totalExpense).toBe(500);
     expect(res.body.balance).toBe(2500);
@@ -162,7 +179,7 @@ describe('PUT /transactions/:id', () => {
 
   it('deve retornar 404 ao atualizar transação inexistente', async () => {
     const res = await request(app)
-      .put('/transactions/99999')
+      .put('/transactions/id-inexistente-99999')
       .set('Authorization', `Bearer ${token}`)
       .send({ description: 'Não existe' });
 

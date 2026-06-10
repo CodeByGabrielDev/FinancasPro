@@ -17,6 +17,9 @@ GoogleService-Info.plist
 *.sqlite
 *.sqlite3
 
+# Dados gerados em runtime
+notification-service/notifications.json
+
 # Build / dist
 dist/
 build/

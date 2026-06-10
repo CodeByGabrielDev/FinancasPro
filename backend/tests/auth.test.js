@@ -1,23 +1,28 @@
 /**
  * Testes funcionais — Autenticação (register e login)
+ * Usa Firestore com projectId fake (sem credenciais reais)
  */
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_secret';
 
 const request = require('supertest');
 const app = require('../src/app');
-const sequelize = require('../src/config/database');
+const { db, Collections } = require('../src/config/firebase');
 
-// Importa modelos para garantir que as tabelas sejam criadas
-require('../src/models/User');
-require('../src/models/Transaction');
-
+// Limpa a coleção de usuários antes de cada suite
 beforeAll(async () => {
-  await sequelize.sync({ force: true });
+  const snapshot = await db.collection(Collections.USERS).get();
+  const batch = db.batch();
+  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
 });
 
 afterAll(async () => {
-  await sequelize.close();
+  // Limpa dados de teste
+  const snapshot = await db.collection(Collections.USERS).get();
+  const batch = db.batch();
+  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
 });
 
 describe('POST /auth/register', () => {
@@ -32,7 +37,6 @@ describe('POST /auth/register', () => {
     expect(res.body).toHaveProperty('token');
     expect(res.body.user).toHaveProperty('id');
     expect(res.body.user.email).toBe('joao@teste.com');
-    // Não retorna senha na resposta
     expect(res.body.user).not.toHaveProperty('password');
   });
 

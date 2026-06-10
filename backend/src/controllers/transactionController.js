@@ -9,27 +9,27 @@ async function listar(req, res) {
   try {
     const { type, category, startDate, endDate } = req.query;
 
-    let query = db.collection(Collections.TRANSACTIONS)
-      .where('userId', '==', req.userId);
-
-    // Filtros opcionais
-    if (type)     query = query.where('type',     '==', type);
-    if (category) query = query.where('category', '==', category);
-
-    // Ordena por data desc
-    query = query.orderBy('date', 'desc').orderBy('createdAt', 'desc');
-
-    const snapshot = await query.get();
+    // Busca apenas pelo userId — sem orderBy no Firestore para evitar índice composto
+    const snapshot = await db.collection(Collections.TRANSACTIONS)
+      .where('userId', '==', req.userId)
+      .get();
 
     let transactions = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
     }));
 
-    // Filtros de data (Firestore exige índice composto para múltiplos where+orderBy,
-    // então filtramos em memória para simplificar)
+    // Todos os filtros e ordenação em memória
+    if (type)      transactions = transactions.filter(t => t.type === type);
+    if (category)  transactions = transactions.filter(t => t.category === category);
     if (startDate) transactions = transactions.filter(t => t.date >= startDate);
     if (endDate)   transactions = transactions.filter(t => t.date <= endDate);
+
+    // Ordena por data desc, depois por createdAt desc
+    transactions.sort((a, b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return b.createdAt.localeCompare(a.createdAt);
+    });
 
     return res.json({ total: transactions.length, transactions });
   } catch (error) {

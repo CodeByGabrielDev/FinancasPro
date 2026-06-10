@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { transactionsAPI } from '../services/api'
 import { today } from '../utils/format'
 
-const CATEGORIES = ['Renda', 'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Outros']
+const CATEGORIES_EXPENSE = ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Outros']
+const CATEGORIES_INCOME  = ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Outros']
 
 export default function AddTransactionPage() {
   const navigate = useNavigate()
@@ -13,6 +14,14 @@ export default function AddTransactionPage() {
   const [desc,     setDesc]     = useState('')
   const [date,     setDate]     = useState(today())
   const [category, setCategory] = useState('Outros')
+
+  // Quando troca o tipo, reseta a categoria para o padrão do novo tipo
+  function handleTypeChange(newType) {
+    setType(newType)
+    setCategory('Outros')
+  }
+
+  const categories = type === 'income' ? CATEGORIES_INCOME : CATEGORIES_EXPENSE
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [success,  setSuccess]  = useState('')
@@ -62,7 +71,7 @@ export default function AddTransactionPage() {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => setType('expense')}
+            onClick={() => handleTypeChange('expense')}
             className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all ${
               type === 'expense'
                 ? 'bg-red-400/10 border-red-400 text-red-400'
@@ -73,7 +82,7 @@ export default function AddTransactionPage() {
           </button>
           <button
             type="button"
-            onClick={() => setType('income')}
+            onClick={() => handleTypeChange('income')}
             className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all ${
               type === 'income'
                 ? 'bg-green-400/10 border-green-400 text-green-400'
@@ -134,7 +143,7 @@ export default function AddTransactionPage() {
               Categoria
             </label>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(cat => (
+              {categories.map(cat => (
                 <button
                   key={cat}
                   type="button"

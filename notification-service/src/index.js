@@ -3,11 +3,15 @@
  *
  * Consome a fila "nova_transacao" do RabbitMQ e gera alertas financeiros.
  * Padrão baseado no estoque-service do projeto AtividadeDockerERabbitMq.
+ *
+ * Persistência: notificações salvas em notifications.json para sobreviver a reinicializações.
  */
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const amqp = require('amqplib');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -17,16 +21,41 @@ const PORT = process.env.PORT || 3001;
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const QUEUE = 'nova_transacao';
 const ALERT_THRESHOLD = parseFloat(process.env.ALERT_THRESHOLD) || 500;
+const DATA_FILE = path.join(__dirname, '..', 'notifications.json');
 
-// Armazenamento em memória das notificações
-const notificacoes = [];
+// ─── Persistência em arquivo ──────────────────────────────────────────────────
+
+function carregarNotificacoes() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    }
+  } catch (err) {
+    console.warn('⚠️  Não foi possível carregar notifications.json:', err.message);
+  }
+  return [];
+}
+
+function salvarNotificacoes(lista) {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(lista, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('⚠️  Não foi possível salvar notifications.json:', err.message);
+  }
+}
+
+// Carrega notificações salvas ao iniciar
+const notificacoes = carregarNotificacoes();
+console.log(`📂 ${notificacoes.length} notificação(ões) carregada(s) do arquivo.`);
+
+// ─── Processamento de mensagens ───────────────────────────────────────────────
 
 /**
  * Avalia a transação recebida e gera notificações/alertas.
  * @param {Object} transacao - Dados da transação
  */
 function processarTransacao(transacao) {
-  const { id, userId, type, amount, description, category, date } = transacao;
+  const { id, userId, type, amount, description, category } = transacao;
 
   console.log(`\n📨 Transação recebida: [${type.toUpperCase()}] R$ ${amount.toFixed(2)} — ${description}`);
 
@@ -40,7 +69,6 @@ function processarTransacao(transacao) {
   };
 
   if (type === 'expense' && amount >= ALERT_THRESHOLD) {
-    // Alerta de despesa alta
     notificacao.tipo = 'alerta';
     notificacao.mensagem = `⚠️ Despesa elevada detectada: R$ ${amount.toFixed(2)} em "${category}" (${description})`;
     console.log(`🚨 ALERTA: ${notificacao.mensagem}`);
@@ -55,7 +83,10 @@ function processarTransacao(transacao) {
   }
 
   notificacoes.push(notificacao);
+  salvarNotificacoes(notificacoes); // persiste imediatamente
 }
+
+// ─── RabbitMQ ─────────────────────────────────────────────────────────────────
 
 /**
  * Conecta ao RabbitMQ e começa a consumir mensagens.
@@ -67,7 +98,7 @@ async function consumirMensagens() {
     const channel = await connection.createChannel();
 
     await channel.assertQueue(QUEUE, { durable: true });
-    channel.prefetch(1); // Processa uma mensagem por vez
+    channel.prefetch(1);
 
     console.log('✅ Conectado ao RabbitMQ');
     console.log(`👂 Aguardando mensagens na fila: ${QUEUE}`);
@@ -75,14 +106,13 @@ async function consumirMensagens() {
 
     channel.consume(QUEUE, (msg) => {
       if (!msg) return;
-
       try {
         const transacao = JSON.parse(msg.content.toString());
         processarTransacao(transacao);
         channel.ack(msg);
       } catch (error) {
         console.error('❌ Erro ao processar mensagem:', error.message);
-        channel.nack(msg, false, true); // Recoloca na fila
+        channel.nack(msg, false, true);
       }
     });
 
@@ -101,11 +131,13 @@ async function consumirMensagens() {
   }
 }
 
-// GET /notifications — Lista todas as notificações
+// ─── Rotas ────────────────────────────────────────────────────────────────────
+
+// GET /notifications — Lista todas as notificações (mais recentes primeiro)
 app.get('/notifications', (req, res) => {
   return res.json({
     total: notificacoes.length,
-    notifications: notificacoes.reverse(), // Mais recentes primeiro
+    notifications: [...notificacoes].reverse(),
   });
 });
 
@@ -114,8 +146,15 @@ app.get('/notifications/alerts', (req, res) => {
   const alertas = notificacoes.filter((n) => n.tipo === 'alerta');
   return res.json({
     total: alertas.length,
-    alerts: alertas.reverse(),
+    alerts: [...alertas].reverse(),
   });
+});
+
+// DELETE /notifications — Limpa todas as notificações
+app.delete('/notifications', (req, res) => {
+  notificacoes.length = 0;
+  salvarNotificacoes(notificacoes);
+  return res.json({ message: 'Notificações removidas com sucesso' });
 });
 
 // Health check
@@ -128,7 +167,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Inicia o servidor e começa a consumir
+// ─── Inicialização ────────────────────────────────────────────────────────────
+
 app.listen(PORT, async () => {
   console.log(`\n🚀 Notification Service rodando na porta ${PORT}`);
   await consumirMensagens();

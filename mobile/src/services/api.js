@@ -3,12 +3,14 @@ import axios from 'axios';
 /**
  * Configuração base da API.
  *
- * ⚠️ Substitua o IP pelo IP local da sua máquina:
- *   - Emulador Android: 10.0.2.2
- *   - Dispositivo físico na mesma rede Wi-Fi: ex. 192.168.1.100
- *   - iOS Simulator: localhost
+ * ⚠️ Ajuste API_BASE_URL conforme seu ambiente:
+ *   - Emulador Android:              http://10.0.2.2:3000
+ *   - Dispositivo físico (Wi-Fi):    http://<IP_DA_MAQUINA>:3000
+ *   - iOS Simulator:                 http://localhost:3000
+ *
+ * Para descobrir seu IP: ipconfig (Windows) ou ifconfig (Mac/Linux)
  */
-const API_BASE_URL = 'http://10.3.17.217:3000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

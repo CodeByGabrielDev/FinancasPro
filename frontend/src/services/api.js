@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-// ⚠️ Ajuste o IP se necessário
-const API_URL       = 'http://10.3.17.217:3000'
-const NOTIF_API_URL = 'http://10.3.17.217:3001'
+// Usa variável de ambiente se definida, senão cai para localhost
+const API_URL       = import.meta.env.VITE_API_URL       || 'http://localhost:3000'
+const NOTIF_API_URL = import.meta.env.VITE_NOTIF_API_URL || 'http://localhost:3001'
 
 // ─── Instância principal ───────────────────────────────────────────────────────
 const api = axios.create({
