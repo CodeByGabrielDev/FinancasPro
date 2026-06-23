@@ -7,8 +7,6 @@
 .env.*.local
 
 # Credenciais Firebase
-serviceAccountKey.json
-**/serviceAccountKey.json
 google-services.json
 GoogleService-Info.plist
 

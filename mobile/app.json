@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "FinancasPro",
+    "slug": "financaspro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.financaspro.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.financaspro.app"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
+  }
+}
